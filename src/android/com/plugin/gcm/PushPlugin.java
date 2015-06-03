@@ -1,10 +1,14 @@
 package com.plugin.gcm;
 
-import android.app.NotificationManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import com.google.android.gcm.GCMRegistrar;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.iid.InstanceID;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
@@ -13,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -32,7 +37,8 @@ public class PushPlugin extends CordovaPlugin {
 	private static String gSenderID;
 	private static Bundle gCachedExtras = null;
     private static boolean gForeground = false;
-    public static JSONObject categories;
+
+    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
 
 	/**
 	 * Gets the application context from cordova's main activity.
@@ -45,51 +51,16 @@ public class PushPlugin extends CordovaPlugin {
 	@Override
 	public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
 
-		boolean result = false;
+		boolean result;
 
 		Log.v(TAG, "execute: action=" + action);
 
 		if (REGISTER.equals(action)) {
-
-			Log.v(TAG, "execute: data=" + data.toString());
-
-			try {
-				JSONObject jo = data.getJSONObject(0);
-
-				gWebView = this.webView;
-				Log.v(TAG, "execute: jo=" + jo.toString());
-
-				gECB = (String) jo.get("ecb");
-				gSenderID = (String) jo.get("senderID");
-
-				Log.v(TAG, "execute: ECB=" + gECB + " senderID=" + gSenderID);
-
-				GCMRegistrar.register(getApplicationContext(), gSenderID);
-				result = true;
-				callbackContext.success();
-			} catch (JSONException e) {
-				Log.e(TAG, "execute: Got JSON Exception " + e.getMessage());
-				result = false;
-				callbackContext.error(e.getMessage());
-			}
-
-			if ( gCachedExtras != null) {
-				Log.v(TAG, "sending cached extras");
-				sendExtras(gCachedExtras);
-				gCachedExtras = null;
-			}
-
+		    result = this.scheduleRegistration(data, callbackContext);
 		} else if (UNREGISTER.equals(action)) {
-			GCMRegistrar.unregister(getApplicationContext());
-
-			Log.v(TAG, "UNREGISTER");
-			result = true;
-			callbackContext.success();
+            result = this.unregister(callbackContext);
 		} else if(REGISTER_CATEGORIES.equals(action)) {
-            JSONObject fullSettings = data.optJSONObject(0);
-            this.categories = fullSettings.optJSONObject("categories");
-            
-            result = true;
+            result = this.registerCategories(data);
         } else {
 			result = false;
 			Log.e(TAG, "Invalid action : " + action);
@@ -137,8 +108,7 @@ public class PushPlugin extends CordovaPlugin {
     public void onPause(boolean multitasking) {
         super.onPause(multitasking);
         gForeground = false;
-        final NotificationManager notificationManager = (NotificationManager) cordova.getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancelAll();
+        PushPluginNotificationManager.cancelAll(this.getApplicationContext());
     }
 
     @Override
@@ -153,6 +123,82 @@ public class PushPlugin extends CordovaPlugin {
         gForeground = false;
 		gECB = null;
 		gWebView = null;
+    }
+
+    /**
+     * Check the device to make sure it has the Google Play Services APK. If
+     * it doesn't, display a dialog that allows users to download the APK from
+     * the Google Play Store or enable it in the device's system settings.
+     */
+    private boolean checkPlayServices() {
+        int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(this.getApplicationContext());
+        if (resultCode != ConnectionResult.SUCCESS) {
+            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
+                GooglePlayServicesUtil.getErrorDialog(resultCode, cordova.getActivity(), PLAY_SERVICES_RESOLUTION_REQUEST).show();
+            } else {
+                Log.i(TAG, "This device is not supported.");
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private boolean scheduleRegistration(JSONArray data, CallbackContext callbackContext) {
+        Log.v(TAG, "execute: data=" + data.toString());
+
+			try {
+				JSONObject jo = data.getJSONObject(0);
+
+				gWebView = this.webView;
+				Log.v(TAG, "execute: jo=" + jo.toString());
+
+				gECB = (String) jo.get("ecb");
+				gSenderID = (String) jo.get("senderID");
+
+                if (this.checkPlayServices()) {
+                    Intent intent = new Intent(this.getApplicationContext(), PushPluginRegistrationIntentService.class);
+                    intent.putExtra("senderId", gSenderID);
+                    this.getApplicationContext().startService(intent);
+                }
+
+				Log.v(TAG, "execute: ECB=" + gECB + " senderID=" + gSenderID);
+
+                callbackContext.success();
+			} catch (JSONException e) {
+				Log.e(TAG, "execute: Got JSON Exception " + e.getMessage());
+				callbackContext.error(e.getMessage());
+                return false;
+			}
+
+            if ( gCachedExtras != null) {
+				Log.v(TAG, "sending cached extras");
+				sendExtras(gCachedExtras);
+				gCachedExtras = null;
+			}
+        return true;
+    }
+
+    private boolean unregister(CallbackContext callbackContext) {
+        InstanceID iid = InstanceID.getInstance(this.getApplicationContext());
+        String regid = iid.getId();
+        try {
+            iid.deleteInstanceID();
+        } catch (IOException e) {
+            Log.e(TAG, e.getMessage());
+            return false;
+        }
+        Log.v(TAG, "UNREGISTER");
+        //Taken from GCMIntentService.onUnregistered
+        Log.d(TAG, "onUnregistered - regId: " + regid);
+        callbackContext.success();
+        return true;
+    }
+
+    private boolean registerCategories(JSONArray data) {
+        JSONObject fullSettings = data.optJSONObject(0);
+        JSONObject categories = fullSettings.optJSONObject("categories");
+        PushPluginNotificationManager.registerCategories(categories);
+        return true;
     }
 
     /*
@@ -239,6 +285,7 @@ public class PushPlugin extends CordovaPlugin {
 		return null;
     }
 
+
     public static boolean isInForeground()
     {
       return gForeground;
@@ -248,4 +295,5 @@ public class PushPlugin extends CordovaPlugin {
     {
     	return gWebView != null;
     }
+
 }

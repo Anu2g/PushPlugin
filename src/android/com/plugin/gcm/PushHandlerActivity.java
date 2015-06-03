@@ -1,8 +1,6 @@
 package com.plugin.gcm;
 
 import android.app.Activity;
-import android.app.NotificationManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -49,14 +47,14 @@ public class PushHandlerActivity extends Activity
             originalExtras.putBoolean("foreground", false);
             originalExtras.putBoolean("coldstart", !isPushPluginActive);
 
-            String actionSelected = extras.getString(GCMIntentService.ACTION_KEY);
+            String actionSelected = extras.getString("foo");
             originalExtras.putString("actionSelected", actionSelected);
 
 			PushPlugin.sendExtras(originalExtras);
 
             // cancel the notification when an action button is clicked
-            final NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
-            notificationManager.cancel(GCMIntentService.getAppName(this), extras.getInt("notId"));
+            int notificationId = extras.getInt("notId");
+            PushPluginNotificationManager.cancel(this, notificationId);
 		}
 	}
 
@@ -73,8 +71,7 @@ public class PushHandlerActivity extends Activity
   @Override
   protected void onResume() {
     super.onResume();
-    final NotificationManager notificationManager = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
-    notificationManager.cancelAll();
+    PushPluginNotificationManager.cancelAll(this);
   }
 
 }
