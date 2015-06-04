@@ -62,7 +62,7 @@ static char launchNotificationKey;
     [pushHandler didFailToRegisterForRemoteNotificationsWithError:error];
 }
 
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
+- (void)applicationPushPlugin:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
     NSLog(@"didReceiveNotification");
     
     // Get application state for iOS4.x+ devices, otherwise assume active
