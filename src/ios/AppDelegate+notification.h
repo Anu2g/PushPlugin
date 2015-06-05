@@ -15,6 +15,9 @@
 - (void)applicationDidBecomeActive:(UIApplication *)application;
 - (id) getCommandInstance:(NSString*)className;
 
+- (void)applicationPushPlugin:(UIApplication *) application handleActionWithIdentifier: (NSString *) identifier
+         forLocalNotification: (NSDictionary *) notification;
+
 @property (nonatomic, retain) NSDictionary	*launchNotification;
 
 @end

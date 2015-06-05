@@ -123,7 +123,7 @@ forRemoteNotification: (NSDictionary *) notification
     completionHandler();
 }
 
-- (void)application:(UIApplication *) application handleActionWithIdentifier: (NSString *) identifier
+- (void)applicationPushPlugin:(UIApplication *) application handleActionWithIdentifier: (NSString *) identifier
   forLocalNotification: (NSDictionary *) notification
   completionHandler: (void (^)()) completionHandler {
 
