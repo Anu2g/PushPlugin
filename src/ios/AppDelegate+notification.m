@@ -62,6 +62,8 @@ static char launchNotificationKey;
     [pushHandler didFailToRegisterForRemoteNotificationsWithError:error];
 }
 
+//this is no longer called directly by the iOS API! we need some of this functionality ourselves, so we're calling this from
+//AppDelegate.m that way there aren't two definitions
 - (void)applicationPushPlugin:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
     NSLog(@"didReceiveNotification");
     
@@ -114,10 +116,12 @@ forRemoteNotification: (NSDictionary *) notification
     completionHandler();
 }
 
-- (void)application:(UIApplication *) application handleActionWithIdentifier: (NSString *) identifier
-  forLocalNotification: (NSDictionary *) notification
-  completionHandler: (void (^)()) completionHandler {
 
+//this is no longer called directly by the iOS API! we need some of this functionality ourselves, so we're calling this from
+//AppDelegate.m that way there aren't two definitions
+- (void)applicationPushPlugin:(UIApplication *) application handleActionWithIdentifier: (NSString *) identifier
+         forLocalNotification: (NSDictionary *) notification {
+    
     PushPlugin *pushHandler = [self getCommandInstance:@"PushPlugin"];
     
     NSMutableDictionary * userInfo = [[notification valueForKey:@"userInfo"] mutableCopy];
@@ -126,8 +130,6 @@ forRemoteNotification: (NSDictionary *) notification
     
     [pushHandler performSelectorOnMainThread:@selector(notificationReceived) withObject:pushHandler waitUntilDone:NO];
     
-    // Must be called when finished
-    completionHandler();
 }
 
 
