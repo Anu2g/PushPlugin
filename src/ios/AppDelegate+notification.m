@@ -10,6 +10,8 @@
 #import "PushPlugin.h"
 #import <objc/runtime.h>
 
+#import "Hurdlr-Swift.h"
+
 static char launchNotificationKey;
 
 @implementation AppDelegate (notification)
@@ -45,6 +47,11 @@ static char launchNotificationKey;
     return userInfo && [userInfo isKindOfClass:[NSDictionary class]] && userInfo[@"icm_cid"] != nil;
 }
 
++ (BOOL)isTrackerPushMessage:(NSDictionary *)userInfo {
+    //check if we contain the key icm_cid
+    return userInfo && [userInfo isKindOfClass:[NSDictionary class]] && userInfo[@"checkTracker"] != nil;
+}
+
 // This code will be called immediately after application:didFinishLaunchingWithOptions:. We need
 // to process notifications in cold-start situations
 - (void)createNotificationChecker:(NSNotification *)notification
@@ -71,6 +78,11 @@ static char launchNotificationKey;
     NSLog(@"didReceiveNotification");
 
     if ([[self class] isIntercomPushMessage:userInfo]) {
+        return;
+    }
+    
+    if ([[self class] isTrackerPushMessage:userInfo]) {
+        [ TraxDistance3 checkMileageTracker ];
         return;
     }
     
