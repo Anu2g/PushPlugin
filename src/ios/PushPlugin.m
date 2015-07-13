@@ -24,6 +24,7 @@
  */
 
 #import "PushPlugin.h"
+#import "Hurdlr-Swift.h"
 
 @implementation PushPlugin
 
@@ -138,7 +139,7 @@
     // ** 4. Register the notification categories
     NSSet *nsCategorySet = [NSSet setWithArray:nsCategories];
     UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:nsTypes categories:nsCategorySet];
-    [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+    [TraxDistanceNotificationManager registerUserNotificationSettings:settings];
 #endif
     [self successWithMessage:[NSString stringWithFormat:@"%@", @"user notifications registered"]];
 }
@@ -257,7 +258,7 @@
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
     if ([[UIApplication sharedApplication]respondsToSelector:@selector(registerUserNotificationSettings:)]) {
         UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:UserNotificationTypes categories:nil];
-        [[UIApplication sharedApplication] registerUserNotificationSettings:settings];
+        [TraxDistanceNotificationManager registerUserNotificationSettings:settings];
         [[UIApplication sharedApplication] registerForRemoteNotifications];
     } else {
         [[UIApplication sharedApplication] registerForRemoteNotificationTypes:notificationTypes];
