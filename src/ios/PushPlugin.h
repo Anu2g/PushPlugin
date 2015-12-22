@@ -54,4 +54,5 @@
 - (void)setNotificationMessage:(NSDictionary *)notification;
 - (void)notificationReceived;
 
++ (NSDictionary*) getCategories;
 @end
