@@ -63,7 +63,8 @@
     self.callbackId = command.callbackId;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
     NSDictionary *options = [command.arguments objectAtIndex:0];
-    NSDictionary *categoryData = [options objectForKey:@"categories"];
+    NSDictionary *categoryData = [PushPlugin getCategories];
+
 
     
     for(id key in categoryData) {
@@ -139,7 +140,7 @@
     // ** 4. Register the notification categories
     NSSet *nsCategorySet = [NSSet setWithArray:nsCategories];
     UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:nsTypes categories:nsCategorySet];
-    [TraxDistanceNotificationManager registerUserNotificationSettings:settings];
+    [TraxNotificationManager registerUserNotificationSettings:settings];
 #endif
     [self successWithMessage:[NSString stringWithFormat:@"%@", @"user notifications registered"]];
 }
@@ -258,7 +259,7 @@
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 80000
     if ([[UIApplication sharedApplication]respondsToSelector:@selector(registerUserNotificationSettings:)]) {
         UIUserNotificationSettings *settings = [UIUserNotificationSettings settingsForTypes:UserNotificationTypes categories:nil];
-        [TraxDistanceNotificationManager registerUserNotificationSettings:settings];
+        [TraxNotificationManager registerUserNotificationSettings:settings];
         [[UIApplication sharedApplication] registerForRemoteNotifications];
     } else {
         [[UIApplication sharedApplication] registerForRemoteNotificationTypes:notificationTypes];
@@ -417,6 +418,66 @@
     CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:errorMessage];
     
     [self.commandDelegate sendPluginResult:commandResult callbackId:self.callbackId];
+}
+
++(NSMutableDictionary*) getCategories
+{
+    NSMutableDictionary *read = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"identifier": @"READ",
+        @"title": @"Read",
+        @"activationMode": @"foreground",
+        @"destructive": @(false),
+        @"authenticationRequired": @(true)
+    }];
+    
+    NSMutableDictionary *ignore = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"identifier": @"IGNORE",
+        @"title": @"Ignore",
+        @"activationMode": @"foreground",
+        @"destructive": @(false),
+        @"authenticationRequired": @(false)
+    }];
+    
+    NSMutableDictionary *delete = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"identifier": @"DELETE",
+        @"title": @"Delete",
+        @"activationMode": @"background",
+        @"destructive": @(true),
+        @"authenticationRequired": @(true)
+    }];
+    
+    NSMutableDictionary *postRetry = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"identifier": @"POST_RETRY",
+        @"title": @"RETRY",
+        @"activationMode": @"background",
+        @"destructive": @(false),
+        @"authenticationRequired": @(true)
+    }];
+    
+    NSMutableDictionary *postCancel = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"identifier": @"POST_CANCEL",
+        @"title": @"CANCEL",
+        @"activationMode": @"background",
+        @"destructive": @(false),
+        @"authenticationRequired": @(true)
+    }];
+
+    NSMutableArray *readIgnoreArr = [NSMutableArray arrayWithArray: @[read, ignore]];
+    NSMutableDictionary *readIgnore = [NSMutableDictionary dictionaryWithDictionary: @{ @"actions": readIgnoreArr }];
+    
+    NSMutableArray *readDeleteArr = [NSMutableArray arrayWithArray: @[read, delete]];
+    NSMutableDictionary *readDelete = [NSMutableDictionary dictionaryWithDictionary: @{ @"actions": readDeleteArr }];
+    
+    NSMutableArray *postRetryCancelArr = [NSMutableArray arrayWithArray: @[postRetry, postCancel]];
+    NSDictionary *postRetryCancel = [NSMutableDictionary dictionaryWithDictionary: @{ @"actions": postRetryCancelArr }];
+
+    NSMutableDictionary *categories = [NSMutableDictionary dictionaryWithDictionary: @{
+        @"READ_IGNORE": readIgnore,
+        @"READ_DELETE": readDelete,
+        @"POST_RETRY_CANCEL": postRetryCancel
+    }];
+    
+    return categories;
 }
 
 @end
