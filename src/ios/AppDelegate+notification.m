@@ -81,11 +81,6 @@ static char launchNotificationKey;
         return;
     }
     
-    if ([[self class] isTrackerPushMessage:userInfo]) {
-        [ TraxDistance3 checkMileageTracker ];
-        return;
-    }
-    
     // Get application state for iOS4.x+ devices, otherwise assume active
     UIApplicationState appState = UIApplicationStateActive;
     if ([application respondsToSelector:@selector(applicationState)]) {
